@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anti-Chess Game</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        #board {
+            display: grid;
+            grid-template-columns: repeat(8, 60px);
+            grid-template-rows: repeat(8, 60px);
+            gap: 1px;
+            border: 2px solid #333;
+        }
+        .square {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 40px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .white { background-color: #f0d9b5; }
+        .black { background-color: #b58863; }
+        #message {
+            margin-top: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+        #controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        input, button {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover { background-color: #45a049; }
+        #quit-button {
+            background-color: #f44336;
+        }
+        #quit-button:hover { background-color: #da190b; }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1>Anti-Chess Game</h1>
+        <div id="board"></div>
+        <div id="message">Player 1's turn (White)</div>
+        <div id="controls">
+            <input type="text" id="from" placeholder="From (e.g., e2)" maxlength="2">
+            <input type="text" id="to" placeholder="To (e.g., e4)" maxlength="2">
+            <button onclick="makeMove()">Move</button>
+            <button id="quit-button" onclick="quitGame()">Quit</button>
+        </div>
+    </div>
+
+    <script>
+        let currentPlayer = 1;
+        const pieces = {
+            'k': '♔', 'q': '♕', 'r': '♖', 'b': '♗', 'n': '♘', 'p': '♙',
+            'K': '♚', 'Q': '♛', 'R': '♜', 'B': '♝', 'N': '♞', 'P': '♟'
+        };
+        let board = [
+            ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
+            ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
+            [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+            [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+            [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+            [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+            ['P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'],
+            ['R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R']
+        ];
+
+        function initBoard() {
+            const boardElement = document.getElementById('board');
+            for (let i = 0; i < 8; i++) {
+                for (let j = 0; j < 8; j++) {
+                    const square = document.createElement('div');
+                    square.className = `square ${(i + j) % 2 === 0 ? 'white' : 'black'}`;
+                    square.textContent = pieces[board[i][j]] || '';
+                    boardElement.appendChild(square);
+                }
+            }
+        }
+
+        function updateBoard() {
+            const squares = document.querySelectorAll('.square');
+            for (let i = 0; i < 8; i++) {
+                for (let j = 0; j < 8; j++) {
+                    squares[i * 8 + j].textContent = pieces[board[i][j]] || '';
+                }
+            }
+        }
+
+        function makeMove() {
+            const from = document.getElementById('from').value.toLowerCase();
+            const to = document.getElementById('to').value.toLowerCase();
+
+            if (!isValidMove(from, to)) {
+                document.getElementById('message').textContent = 'Invalid move. Try again.';
+                return;
+            }
+
+            const [fromRow, fromCol] = convertToCoordinates(from);
+            const [toRow, toCol] = convertToCoordinates(to);
+
+            board[toRow][toCol] = board[fromRow][fromCol];
+            board[fromRow][fromCol] = ' ';
+
+            updateBoard();
+
+            if (checkWin()) {
+                document.getElementById('message').textContent = `Player ${currentPlayer} wins!`;
+                disableInputs();
+            } else {
+                currentPlayer = currentPlayer === 1 ? 2 : 1;
+                document.getElementById('message').textContent = `Player ${currentPlayer}'s turn (${currentPlayer === 1 ? 'White' : 'Black'})`;
+            }
+
+            document.getElementById('from').value = '';
+            document.getElementById('to').value = '';
+        }
+
+        function isValidMove(from, to) {
+            // Implement anti-chess move validation logic here
+            // This is a simplified check and needs to be expanded for real anti-chess rules
+            const [fromRow, fromCol] = convertToCoordinates(from);
+            const [toRow, toCol] = convertToCoordinates(to);
+
+            return fromRow >= 0 && fromRow < 8 && fromCol >= 0 && fromCol < 8 &&
+                   toRow >= 0 && toRow < 8 && toCol >= 0 && toCol < 8 &&
+                   board[fromRow][fromCol] !== ' ' &&
+                   (currentPlayer === 1 ? board[fromRow][fromCol] === board[fromRow][fromCol].toUpperCase() : 
+                                          board[fromRow][fromCol] === board[fromRow][fromCol].toLowerCase());
+        }
+
+        function convertToCoordinates(position) {
+            const col = position.charCodeAt(0) - 'a'.charCodeAt(0);
+            const row = 8 - parseInt(position[1]);
+            return [row, col];
+        }
+
+        function checkWin() {
+            // Implement anti-chess win condition logic here
+            // This is a simplified check and needs to be expanded for real anti-chess rules
+            return board.flat().every(piece => piece === ' ');
+        }
+
+        function quitGame() {
+            const winner = currentPlayer === 1 ? 2 : 1;
+            document.getElementById('message').textContent = `Player ${winner} wins! Player ${currentPlayer} quit.`;
+            disableInputs();
+        }
+
+        function disableInputs() {
+            document.getElementById('from').disabled = true;
+            document.getElementById('to').disabled = true;
+            document.querySelector('#controls button').disabled = true;
+            document.getElementById('quit-button').disabled = true;
+        }
+
+        initBoard();
+    </script>
+</body>
+</html>

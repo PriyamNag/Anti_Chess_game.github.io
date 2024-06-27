@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anti-Chess Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(8, 60px);
+            grid-template-rows: repeat(8, 60px);
+            border: 2px solid #333;
+        }
+        .square {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 40px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .white { background-color: #f0d9b5; }
+        .black { background-color: #b58863; }
+        .highlight { background-color: #ffff99; }
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .message {
+            margin-top: 10px;
+            font-weight: bold;
+            min-height: 20px;
+        }
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Anti-Chess Game</h1>
+        <div id="board" class="board"></div>
+        <div class="controls">
+            <p>Current Player: <span id="current-player">White</span></p>
+            <button id="quit-btn">Quit</button>
+            <button id="reset-btn">Reset Game</button>
+        </div>
+        <div id="message" class="message"></div>
+    </div>
+    <script>
+class AntiChessGame {
+    constructor() {
+        this.board = document.getElementById('board');
+        this.currentPlayerSpan = document.getElementById('current-player');
+        this.quitBtn = document.getElementById('quit-btn');
+        this.resetBtn = document.getElementById('reset-btn');
+        this.messageDiv = document.getElementById('message');
+
+        this.currentPlayer = 'white';
+        this.selectedPiece = null;
+        this.gameState = [
+            ['♜', '♞', '♝', '♛', '♚', '♝', '♞', '♜'],
+            ['♟', '♟', '♟', '♟', '♟', '♟', '♟', '♟'],
+            ['', '', '', '', '', '', '', ''],
+            ['', '', '', '', '', '', '', ''],
+            ['', '', '', '', '', '', '', ''],
+            ['', '', '', '', '', '', '', ''],
+            ['♙', '♙', '♙', '♙', '♙', '♙', '♙', '♙'],
+            ['♖', '♘', '♗', '♕', '♔', '♗', '♘', '♖']
+        ];
+
+        this.initializeBoard();
+        this.addEventListeners();
+    }
+
+    initializeBoard() {
+        this.board.innerHTML = '';
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                const square = document.createElement('div');
+                square.classList.add('square');
+                square.classList.add((row + col) % 2 === 0 ? 'white' : 'black');
+                square.dataset.row = row;
+                square.dataset.col = col;
+                square.textContent = this.gameState[row][col];
+                this.board.appendChild(square);
+            }
+        }
+    }
+
+    addEventListeners() {
+        this.board.addEventListener('click', (e) => this.handleSquareClick(e));
+        this.quitBtn.addEventListener('click', () => this.quitGame());
+        this.resetBtn.addEventListener('click', () => this.resetGame());
+    }
+
+    handleSquareClick(event) {
+        const clickedSquare = event.target;
+        const row = parseInt(clickedSquare.dataset.row);
+        const col = parseInt(clickedSquare.dataset.col);
+
+        if (!this.selectedPiece) {
+            if (this.gameState[row][col] && this.isPieceOfCurrentPlayer(this.gameState[row][col])) {
+                this.selectedPiece = { row, col };
+                clickedSquare.classList.add('highlight');
+            }
+        } else {
+            const fromRow = this.selectedPiece.row;
+            const fromCol = this.selectedPiece.col;
+            
+            if (this.isValidMove(fromRow, fromCol, row, col)) {
+                this.movePiece(fromRow, fromCol, row, col);
+            } else {
+                this.showMessage("Invalid move. Try again.");
+            }
+
+            this.board.children[fromRow * 8 + fromCol].classList.remove('highlight');
+            this.selectedPiece = null;
+        }
+    }
+
+    isPieceOfCurrentPlayer(piece) {
+        const whitePieces = '♔♕♖♗♘♙';
+        const blackPieces = '♚♛♜♝♞♟';
+        return this.currentPlayer === 'white' ? whitePieces.includes(piece) : blackPieces.includes(piece);
+    }
+
+    isValidMove(fromRow, fromCol, toRow, toCol) {
+        const piece = this.gameState[fromRow][fromCol].toLowerCase();
+        const dx = toCol - fromCol;
+        const dy = toRow - fromRow;
+
+        switch (piece) {
+            case '♙': // Pawn
+                if (this.currentPlayer === 'white') {
+                    return (dy === -1 && dx === 0) || (fromRow === 6 && dy === -2 && dx === 0);
+                } else {
+                    return (dy === 1 && dx === 0) || (fromRow === 1 && dy === 2 && dx === 0);
+                }
+            case '♖': // Rook
+                return (dx === 0 && dy !== 0) || (dy === 0 && dx !== 0);
+            case '♘': // Knight
+                return (Math.abs(dx) === 1 && Math.abs(dy) === 2) || (Math.abs(dx) === 2 && Math.abs(dy) === 1);
+            case '♗': // Bishop
+                return Math.abs(dx) === Math.abs(dy);
+            case '♕': // Queen
+                return dx === 0 || dy === 0 || Math.abs(dx) === Math.abs(dy);
+            case '♔': // King
+                return Math.abs(dx) <= 1 && Math.abs(dy) <= 1;
+            default:
+                return false;
+        }
+    }
+
+    movePiece(fromRow, fromCol, toRow, toCol) {
+        this.gameState[toRow][toCol] = this.gameState[fromRow][fromCol];
+        this.gameState[fromRow][fromCol] = '';
+        this.updateBoardUI();
+        this.checkWinCondition();
+        this.switchPlayer();
+    }
+
+    updateBoardUI() {
+        const squares = this.board.children;
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                squares[row * 8 + col].textContent = this.gameState[row][col];
+            }
+        }
+    }
+
+    switchPlayer() {
+        this.currentPlayer = this.currentPlayer === 'white' ? 'black' : 'white';
+        this.currentPlayerSpan.textContent = this.currentPlayer.charAt(0).toUpperCase() + this.currentPlayer.slice(1);
+    }
+
+    checkWinCondition() {
+        const currentPlayerPieces = this.gameState.flat().filter(piece => this.isPieceOfCurrentPlayer(piece));
+        if (currentPlayerPieces.length === 0) {
+            const winner = this.currentPlayer === 'white' ? 'Black' : 'White';
+            this.showMessage(`${winner} wins!`);
+        }
+    }
+
+    showMessage(msg) {
+        this.messageDiv.textContent = msg;
+    }
+
+    quitGame() {
+        const winner = this.currentPlayer === 'white' ? 'Black' : 'White';
+        this.showMessage(`${winner} wins! ${this.currentPlayer.charAt(0).toUpperCase() + this.currentPlayer.slice(1)} has quit.`);
+    }
+
+    resetGame() {
+        this.currentPlayer = 'white';
+        this.selectedPiece = null;
+        this.gameState = [
+            ['♜', '♞', '♝', '♛', '♚', '♝', '♞', '♜'],
+            ['♟', '♟', '♟', '♟', '♟', '♟', '♟', '♟'],
+            ['', '', '', '', '', '', '', ''],
+            ['', '', '', '', '', '', '', ''],
+            ['', '', '', '', '', '', '', ''],
+            ['', '', '', '', '', '', '', ''],
+            ['♙', '♙', '♙', '♙', '♙', '♙', '♙', '♙'],
+            ['♖', '♘', '♗', '♕', '♔', '♗', '♘', '♖']
+        ];
+        this.initializeBoard();
+        this.currentPlayerSpan.textContent = 'White';
+        this.showMessage('');
+    }
+}
+
+const game = new AntiChessGame();
+    </script>
+</body>
+</html>
